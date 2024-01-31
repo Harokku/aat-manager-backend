@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+<h1>Login</h1>
+<form id="mailForm" method="post">
+    <label for="mail">Email</label><input type="text" id="mail" name="mail">
+    <button type="submit" value="submit">Submit</button>
+</form>
+
+<script>
+    window.onload = function () {
+        var params = new URLSearchParams(window.location.search);
+        var form = document.getElementById('mailForm');
+
+        // Append the query parameters to the form's action URL
+        var redirect = params.get('redirect');
+        if (redirect) form.action = "/login?redirect=" + redirect;
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Check OTP</title>
+</head>
+<body>
+<h1>OTP Check page</h1>
+<form id="checkOtpForm" method="post">
+    <label for="otp">Inserisci l'OTP ricevuto via mail</label><input type="text" id="otp" name="otp">
+    <button type="submit" value="submit">Submit</button>
+</form>
+
+<script>
+    window.onload = function () {
+        var params = new URLSearchParams(window.location.search);
+        var form = document.getElementById('checkOtpForm');
+
+        // Append the query parameters to the form's action URL
+        var redirect = params.get('redirect');
+        if (redirect) form.action = "/login/checkotp?redirect=" + redirect;
+    }
+</script>
+
+</body>
+</html>
