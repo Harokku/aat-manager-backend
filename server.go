@@ -13,6 +13,8 @@ import (
 )
 
 func main() {
+	// Check that all env variable are set
+	utils.CheckEnvCompliance()
 
 	// Initialize in memory db for OTP storage
 	memoryDb := db.NewDB()
@@ -41,6 +43,6 @@ func main() {
 
 	routing.SetupRoutes(app, *handler)
 
-	port := utils.ReadEnvOrPanic("PORT")
+	port := utils.ReadEnvOrPanic(utils.PORT)
 	app.Listen(":" + port)
 }

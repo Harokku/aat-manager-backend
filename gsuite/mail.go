@@ -20,7 +20,7 @@ type MailService struct {
 // It returns the new MailService struct with a Gmail service and any error encountered while initializing.
 func (ms MailService) New() (MailService, error) {
 	ctx := context.Background()
-	b := utils.ReadEnvOrPanic("GSECRET")
+	b := utils.ReadEnvOrPanic(utils.GOOGLECREDENTIAL)
 
 	config, err := google.ConfigFromJSON([]byte(b), gmail.GmailSendScope)
 	if err != nil {

@@ -13,11 +13,11 @@
 
 <script>
     window.onload = function () {
-        var params = new URLSearchParams(window.location.search);
-        var form = document.getElementById('mailForm');
+        const params = new URLSearchParams(window.location.search);
+        const form = document.getElementById('mailForm');
 
         // Append the query parameters to the form's action URL
-        var redirect = params.get('redirect');
+        const redirect = params.get('redirect');
         if (redirect) form.action = "/login?redirect=" + redirect;
     }
 </script>

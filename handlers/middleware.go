@@ -31,7 +31,7 @@ func JWTAuthenticationMiddleware(ctx *fiber.Ctx) error {
 		return nil
 	}
 
-	jwtSecret := utils.ReadEnvOrPanic("JWTSECRET")
+	jwtSecret := utils.ReadEnvOrPanic(utils.JWTSECRET)
 	if jwtSecret == "" {
 		log.Println("JWT Secret not set")
 		return ctx.Status(fiber.StatusInternalServerError).SendString("Internal server error: JWT Secret not set.")

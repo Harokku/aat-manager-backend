@@ -36,7 +36,7 @@ func (h *Handler) GetMailAndSendBackOtp(ctx *fiber.Ctx) error {
 	// Parse email from request to validate it
 	addr, err := mail.ParseAddress(formData.Mail)
 	if err != nil {
-		log.Errorf("Error parsing email from auth form:\t%w\n", err)
+		log.Errorf("Error parsing email from auth form:\t%s\n", err)
 		return ctx.Status(fiber.StatusBadRequest).SendString(err.Error())
 	}
 
@@ -84,13 +84,13 @@ func (h *Handler) GetOtpAndAuthenticate(ctx *fiber.Ctx) error {
 	}
 
 	// Read user's email from pendingAuthCookie
-	mail, err := mail.ParseAddress(ctx.Cookies(PendingAuthCookieName))
+	userEmail, err := mail.ParseAddress(ctx.Cookies(PendingAuthCookieName))
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).SendString(err.Error())
 	}
 
 	// Check if user entered OTP match with stored one
-	valid, err := authenticator.CheckOtpAndDelete(*mail, otp, h.Db)
+	valid, err := authenticator.CheckOtpAndDelete(*userEmail, otp, h.Db)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).SendString(err.Error())
 	}
@@ -99,13 +99,13 @@ func (h *Handler) GetOtpAndAuthenticate(ctx *fiber.Ctx) error {
 	if valid {
 		log.Info("Valid OTP")
 
-		// Extract user from mail address
+		// Extract user from userEmail address
 		// Search for last @ occurrence
-		atIndex := strings.LastIndex(mail.Address, "@")
+		atIndex := strings.LastIndex(userEmail.Address, "@")
 		if atIndex == -1 {
 			return ctx.Status(fiber.StatusBadRequest).SendString("Malformed email address")
 		}
-		user := mail.Address[:atIndex]
+		user := userEmail.Address[:atIndex]
 
 		// Create and sign token
 		token, err := authenticator.CreateAndSignJWT(user, false)
@@ -114,7 +114,7 @@ func (h *Handler) GetOtpAndAuthenticate(ctx *fiber.Ctx) error {
 		}
 
 		// Read JWT expiration from env
-		expiredays, err := strconv.Atoi(utils.ReadEnvOrPanic("JWTEXPIREM"))
+		expiredays, err := strconv.Atoi(utils.ReadEnvOrPanic(utils.JWTEXPIREINMONTH))
 		if err != nil {
 			return ctx.Status(fiber.StatusInternalServerError).SendString(err.Error())
 		}

@@ -15,10 +15,10 @@ import (
 // The function first searches for the last occurrence of "@" in the mail address. If "@" doesn't exist,
 // it returns an error of ErrMalformedMail.
 //
-// It then checks if the domain of the mail address is authorized by comparing it with the value of the environment variable "AUTHDOMAIN".
+// It then checks if the domain of the mail address is authorized by comparing it with the value of the environment variable utils.AUTHORIZEDDOMAIN.
 // If the domain is not authorized, it returns an error of ErrUnauthorizedDomain.
 //
-// Next, it generates a new OTP based on the value of the environment variable "OTPLENGTH".
+// Next, it generates a new OTP based on the value of the environment variable utils.OTPLENGTH.
 // If the value is not a numeric value, it returns an error of ErrNonNumericValue.
 // The OTP length is determined by converting the environment variable value to an integer.
 // The OTP is generated using the randSecret function.
@@ -36,14 +36,14 @@ func GenOtpAndSave(mail mail.Address, db *db.InMemoryDb) (string, error) {
 	}
 
 	// Check if the domain is authorized
-	authDomain := utils.ReadEnvOrPanic("AUTHDOMAIN")
+	authDomain := utils.ReadEnvOrPanic(utils.AUTHORIZEDDOMAIN)
 	domain := mail.Address[atIndex+1:]
 	if domain != authDomain {
 		return "", ErrUnauthorizedDomain
 	}
 
 	// Generate new otp
-	otpLength, err := strconv.Atoi(utils.ReadEnvOrPanic("OTPLENGTH"))
+	otpLength, err := strconv.Atoi(utils.ReadEnvOrPanic(utils.OTPLENGTH))
 	if err != nil {
 		return "", ErrNonNumericValue
 	}

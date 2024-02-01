@@ -13,7 +13,7 @@ func CreateAndSignJWT(user string, manager bool) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 
 	// Expire days from env
-	expiredays, err := strconv.Atoi(utils.ReadEnvOrPanic("JWTEXPIREM"))
+	expiredays, err := strconv.Atoi(utils.ReadEnvOrPanic(utils.JWTEXPIREINMONTH))
 	if err != nil {
 		return "", ErrNonNumericValue
 	}
@@ -25,7 +25,7 @@ func CreateAndSignJWT(user string, manager bool) (string, error) {
 	claims["exp"] = time.Now().AddDate(0, expiredays, 0).Unix()
 
 	// Read secret from env and sig the token
-	jwtSecret := utils.ReadEnvOrPanic("JWTSECRET")
+	jwtSecret := utils.ReadEnvOrPanic(utils.JWTSECRET)
 	// Check if blank secret is used and return error
 	if jwtSecret == "" {
 		return "", ErrBlankSecret

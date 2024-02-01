@@ -1,6 +1,7 @@
 package authenticator
 
 import (
+	"aat-manager/utils"
 	"os"
 	"testing"
 )
@@ -20,8 +21,8 @@ func TestCreateAndSignJWT(t *testing.T) {
 			name: "Happy Path",
 			args: args{user: "TestUser", manager: true},
 			setupFunc: func() {
-				os.Setenv("JWTSECRET", "test_secret")
-				os.Setenv("JWTEXPIREM", "30")
+				os.Setenv(utils.JWTSECRET, "test_secret")
+				os.Setenv(utils.JWTEXPIREINMONTH, "30")
 			},
 			wantErr: false,
 		},
@@ -29,8 +30,8 @@ func TestCreateAndSignJWT(t *testing.T) {
 			name: "Missing JWT Secret",
 			args: args{user: "TestUser", manager: true},
 			setupFunc: func() {
-				os.Setenv("JWTSECRET", "")
-				os.Setenv("JWTEXPIREM", "30")
+				os.Setenv(utils.JWTSECRET, "")
+				os.Setenv(utils.JWTEXPIREINMONTH, "30")
 			},
 			wantErr: true,
 		},
@@ -38,8 +39,8 @@ func TestCreateAndSignJWT(t *testing.T) {
 			name: "Non Numeric Expire Days",
 			args: args{user: "TestUser", manager: true},
 			setupFunc: func() {
-				os.Setenv("JWTSECRET", "test_secret")
-				os.Setenv("JWTEXPIREM", "invalid_days")
+				os.Setenv(utils.JWTSECRET, "test_secret")
+				os.Setenv(utils.JWTEXPIREINMONTH, "invalid_days")
 			},
 			wantErr: true,
 		},
