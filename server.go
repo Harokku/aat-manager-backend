@@ -34,6 +34,9 @@ func main() {
 	// Fiber app definition
 	app := fiber.New()
 
+	// Google verify file
+	app.Static("/", "./googleverify")
+
 	// Login files
 	app.Static("/login", "./public/login")
 
