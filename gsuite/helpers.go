@@ -3,11 +3,13 @@ package gsuite
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"golang.org/x/oauth2"
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 // Retrieve a token, saves the token, then returns the generated client.
@@ -25,7 +27,7 @@ func getClient(config *oauth2.Config) *http.Client {
 }
 
 // Request a token from the web, then returns the retrieved token.
-func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
+func getTokenFromWebToConsole(config *oauth2.Config) *oauth2.Token {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 	fmt.Printf("Go to the following link in your browser then type the "+
 		"authorization code: \n%v\n", authURL)
@@ -40,6 +42,64 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 		log.Fatalf("Unable to retrieve token from web: %v", err)
 	}
 	return tok
+}
+
+func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
+	// create a random state string
+	state := fmt.Sprintf("st%d", time.Now().UnixNano())
+
+	// Generate the OAuth2.0 URL
+	authURL := config.AuthCodeURL(state, oauth2.AccessTypeOffline)
+
+	// make a channel to pass the token or error
+	tokenCh := make(chan *oauth2.Token)
+	errorCh := make(chan error)
+
+	// create a temporary web server
+	server := http.NewServeMux()
+	s := &http.Server{Addr: ":8080", Handler: server}
+
+	// handle OAuth2.0 responses
+	server.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// confirm the state matches
+		if r.URL.Query().Get("state") != state {
+			errorCh <- fmt.Errorf("state did not match")
+			http.Error(w, "state did not match", http.StatusBadRequest)
+			return
+		}
+
+		// use the authorization code that is pushed to the redirect URL to fetch the access and refresh tokens
+		tok, err := config.Exchange(context.TODO(), r.URL.Query().Get("code"))
+		if err != nil {
+			errorCh <- fmt.Errorf("failed to exchange token: %s", err.Error())
+			http.Error(w, "failed to exchange token", http.StatusInternalServerError)
+			return
+		}
+
+		tokenCh <- tok
+	})
+
+	// Start the web server
+	go func() {
+		if err := s.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			errorCh <- err
+		}
+	}()
+
+	// print the url to authorize
+	fmt.Printf("Go to the following link in your browser:\n%v\n", authURL)
+
+	var token *oauth2.Token
+	select {
+	case err := <-errorCh:
+		log.Fatalf("Unable to retrieve token from web: %v", err)
+	case token = <-tokenCh:
+	}
+
+	// shut down the server
+	s.Shutdown(context.TODO())
+
+	return token
 }
 
 // Retrieves a token from a local file.
