@@ -7,14 +7,15 @@ import (
 )
 
 const (
-	PORT             = "PORT"           // Serve port
-	JWTSECRET        = "JWTSECRET"      // Secret for JWT signing
-	JWTEXPIREINMONTH = "JWTEXPIREM"     // JWT expiration in month
-	AUTHORIZEDDOMAIN = "AUTHDOMAIN"     // Authorized e-mail domain for login
-	OTPLENGTH        = "OTPLENGTH"      // Length of the generated numerical OTP in character
-	GOOGLECREDENTIAL = "GSECRET"        // Google API credential JSON
-	VEHICLESHEETID   = "VEHICLESHEETID" // Sheet ID for vehicle issue report
-	STATIONSHEETID   = "STATIONSHEETID" // Sheet ID for station issue report
+	PORT              = "PORT"           // Serve port
+	JWTSECRET         = "JWTSECRET"      // Secret for JWT signing
+	JWTEXPIREINMONTH  = "JWTEXPIREM"     // JWT expiration in month
+	AUTHORIZEDDOMAIN  = "AUTHDOMAIN"     // Authorized e-mail domain for login
+	OTPLENGTH         = "OTPLENGTH"      // Length of the generated numerical OTP in character
+	WITHGOOGLESERVICE = "WITHGSERVICE"   // If true enable Google API Integration
+	GOOGLECREDENTIAL  = "GSECRET"        // Google API credential JSON
+	VEHICLESHEETID    = "VEHICLESHEETID" // Sheet ID for vehicle issue report
+	STATIONSHEETID    = "STATIONSHEETID" // Sheet ID for station issue report
 )
 
 // CheckEnvCompliance verifies that all required environment variables are set.
@@ -27,6 +28,7 @@ func CheckEnvCompliance() {
 		JWTEXPIREINMONTH,
 		AUTHORIZEDDOMAIN,
 		OTPLENGTH,
+		WITHGOOGLESERVICE,
 		GOOGLECREDENTIAL,
 		VEHICLESHEETID,
 		STATIONSHEETID,

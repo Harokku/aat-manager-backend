@@ -14,18 +14,29 @@ import (
 )
 
 type Handler struct {
-	Db          *db.InMemoryDb
-	MailService gsuite.MailService
+	Db          *db.InMemoryDb     // In memory db interface
+	MailService gsuite.MailService // Gmail service interface
+	initialized bool               // Indicate that the handler is initialized and safe for use
 }
 type AuthData struct {
 	Mail string `json:"mail,omitempty" form:"mail"`
 	Otp  string `json:"otp,omitempty" form:"otp"`
 }
 
+func (h *Handler) InitializeService(db *db.InMemoryDb, ms gsuite.MailService, init bool) {
+	h.Db = db
+	h.MailService = ms
+	h.initialized = init
+}
+
 // GetMailAndSendBackOtp takes in a fiber.Ctx and retrieves the email from the request body.
 // It then validates the email and generates an OTP for the user.
 // The OTP is sent to the user
 func (h *Handler) GetMailAndSendBackOtp(ctx *fiber.Ctx) error {
+	if !h.initialized {
+		return ctx.Status(fiber.StatusNotImplemented).SendString("This service is not enabled.")
+	}
+
 	formData := new(AuthData)
 
 	// Read email field from request
@@ -70,6 +81,10 @@ func (h *Handler) GetMailAndSendBackOtp(ctx *fiber.Ctx) error {
 // It converts the OTP from string to int and reads the user's email from the pendingAuthCookie.
 // It then checks if the user-entered OTP matches the stored OTP and returns the appropriate status and message.
 func (h *Handler) GetOtpAndAuthenticate(ctx *fiber.Ctx) error {
+	if !h.initialized {
+		return ctx.Status(fiber.StatusNotImplemented).SendString("This service is not enabled.")
+	}
+
 	formData := new(AuthData)
 
 	// Read user entered OTP from request

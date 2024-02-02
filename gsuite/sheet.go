@@ -16,6 +16,7 @@ import (
 // - stationSheet: The name of the sheet that contains station data.
 type SheetService struct {
 	Srv          *sheets.Service
+	initialized  bool
 	vehicleSheet string
 	stationSheet string
 }

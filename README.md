@@ -32,6 +32,7 @@ You can either set them in env or in a .env file in the root directory
 "AUTHDOMAIN"     // Authorized e-mail domain for login
 "OTPLENGTH"      // Length of the generated numerical
 "GSECRET"        // Google API credential JSON
+"WITHGSERVICE"   // If true enable Google API Integration
 "VEHICLESHEETID" // Sheet ID for vehicle issue report
 "STATIONSHEETID" // Sheet ID for station issue report
 ```
