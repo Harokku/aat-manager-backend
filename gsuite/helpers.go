@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"time"
 )
 
@@ -20,7 +21,7 @@ func getClient(config *oauth2.Config) *http.Client {
 	tokFile := "token.json"
 	tok, err := tokenFromFile(tokFile)
 	if err != nil {
-		tok = getTokenFromWeb(config)
+		tok = getTokenFromWebToConsole(config)
 		saveToken(tokFile, tok)
 	}
 	return config.Client(context.Background(), tok)
@@ -123,4 +124,38 @@ func saveToken(path string, token *oauth2.Token) {
 	}
 	defer f.Close()
 	json.NewEncoder(f).Encode(token)
+}
+
+// -------------------------
+// Gsheet helpers
+// -------------------------
+
+// checkA1Validity checks the validity of a string in the form "Sheet1!A1:B2".
+// It uses a regular expression to match the format.
+// Returns true if the string matches the format, false otherwise.
+func checkA1Validity(s string) bool {
+	// This regex will match strings of the form "Sheet1!A1:B2". Note it doesn't work with Named Ranges.
+	rx := regexp.MustCompile(`^[^\s!]+![A-Z]+\d+:[A-Z]+\d+$`)
+
+	return rx.MatchString(s)
+}
+
+// colNumToName converts a column number to its corresponding column name in Excel spreadsheet.
+// The function takes an integer column number as input and returns the corresponding column name as a string.
+// If the input column number is 0, an empty string is returned.
+// The conversion is based on a 26-letter system, where A = 1, B = 2, ..., Z = 26.
+// For column numbers greater than 26, multiple characters are used to represent the column name.
+// For example, 27 is represented as "AA", 52 is represented as "AZ", and 700 is represented as "ZX".
+// If a non-positive column number is provided, an empty string is returned.
+func colNumToName(colNum int) string {
+	colName := "" // Start with empty string
+	if colNum == 0 {
+		return colName
+	}
+	for colNum > 0 {
+		rem := (colNum - 1) % 26
+		colNum = (colNum - rem) / 26
+		colName = string('A'+rune(rem)) + colName
+	}
+	return colName
 }

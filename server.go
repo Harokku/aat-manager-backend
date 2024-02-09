@@ -36,10 +36,7 @@ func main() {
 
 		// Create handler to setup routes
 		handler.InitializeService(memoryDb, mailService, true)
-		//handler = handlers.Handler{
-		//	Db:          memoryDb,
-		//	MailService: mailService,
-		//}
+
 	} else {
 		handler.InitializeService(nil, gsuite.MailService{}, false)
 	}

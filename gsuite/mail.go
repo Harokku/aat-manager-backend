@@ -8,6 +8,7 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/option"
+	"google.golang.org/api/sheets/v4"
 	"log"
 )
 
@@ -22,7 +23,7 @@ func (ms MailService) New() (MailService, error) {
 	ctx := context.Background()
 	b := utils.ReadEnvOrPanic(utils.GOOGLECREDENTIAL)
 
-	config, err := google.ConfigFromJSON([]byte(b), gmail.GmailSendScope)
+	config, err := google.ConfigFromJSON([]byte(b), gmail.GmailSendScope, sheets.SpreadsheetsScope)
 	if err != nil {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
