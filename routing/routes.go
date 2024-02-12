@@ -11,6 +11,9 @@ func SetupRoutes(app *fiber.App, handler handlers.Handler) {
 		return ctx.Status(fiber.StatusOK).SendString("App root")
 	})
 
+	// OAuth auth route
+	app.Get("/oauth_callback", handlers.OauthCallback())
+
 	// Login routes
 	login := app.Group("/login")
 	login.Get("/", func(ctx *fiber.Ctx) error {

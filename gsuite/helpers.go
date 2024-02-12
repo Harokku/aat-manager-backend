@@ -1,17 +1,26 @@
 package gsuite
 
 import (
+	"aat-manager/utils"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"golang.org/x/oauth2"
 	"log"
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"time"
 )
+
+type Token struct {
+	Token *oauth2.Token // oauth2 signed Token
+	Err   error         // error
+}
+
+var StateCh = make(chan string) // StateCh to xchange oauth2 state variable
+var TokenCh = make(chan Token)  // TokenCh to xchange oauth2 token
 
 // Retrieve a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) *http.Client {
@@ -21,7 +30,12 @@ func getClient(config *oauth2.Config) *http.Client {
 	tokFile := "token.json"
 	tok, err := tokenFromFile(tokFile)
 	if err != nil {
-		tok = getTokenFromWebToConsole(config)
+		useWebAuth, _ := strconv.ParseBool(utils.ReadEnvOrPanic(utils.WEBAUTH))
+		if useWebAuth {
+			tok = getTokenFromWeb(config)
+		} else {
+			tok = getTokenFromWebToConsole(config)
+		}
 		saveToken(tokFile, tok)
 	}
 	return config.Client(context.Background(), tok)
@@ -49,59 +63,65 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	// create a random state string
 	state := fmt.Sprintf("st%d", time.Now().UnixNano())
 
+	// send state to channel for handler to check request validity
+	StateCh <- state
+
 	// Generate the OAuth2.0 URL
 	authURL := config.AuthCodeURL(state, oauth2.AccessTypeOffline)
-
-	// make a channel to pass the token or error
-	tokenCh := make(chan *oauth2.Token)
-	errorCh := make(chan error)
-
-	// create a temporary web server
-	server := http.NewServeMux()
-	s := &http.Server{Addr: ":8080", Handler: server}
-
-	// handle OAuth2.0 responses
-	server.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// confirm the state matches
-		if r.URL.Query().Get("state") != state {
-			errorCh <- fmt.Errorf("state did not match")
-			http.Error(w, "state did not match", http.StatusBadRequest)
-			return
-		}
-
-		// use the authorization code that is pushed to the redirect URL to fetch the access and refresh tokens
-		tok, err := config.Exchange(context.TODO(), r.URL.Query().Get("code"))
-		if err != nil {
-			errorCh <- fmt.Errorf("failed to exchange token: %s", err.Error())
-			http.Error(w, "failed to exchange token", http.StatusInternalServerError)
-			return
-		}
-
-		tokenCh <- tok
-	})
-
-	// Start the web server
-	go func() {
-		if err := s.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			errorCh <- err
-		}
-	}()
 
 	// print the url to authorize
 	fmt.Printf("Go to the following link in your browser:\n%v\n", authURL)
 
-	var token *oauth2.Token
-	select {
-	case err := <-errorCh:
-		log.Fatalf("Unable to retrieve token from web: %v", err)
-	case token = <-tokenCh:
+	// Listen to channel for signed token or error
+	token := <-TokenCh
+	if token.Err != nil {
+		log.Fatalf("Unable to retrieve token from web: %v", token.Err)
 	}
 
-	// shut down the server
-	s.Shutdown(context.TODO())
-
-	return token
+	return token.Token
 }
+
+//func getTokenFromWeb(config *oauth2.Config, app *fiber.App) *oauth2.Token {
+//	// create a random state string
+//	state := fmt.Sprintf("st%d", time.Now().UnixNano())
+//
+//	// Generate the OAuth2.0 URL
+//	authURL := config.AuthCodeURL(state, oauth2.AccessTypeOffline)
+//
+//	// make a channel to pass the token or error
+//	tokenCh := make(chan *oauth2.Token)
+//	errorCh := make(chan error)
+//
+//	// add a handler to your fiber app to intercept OAuth2 responses
+//	app.Get("/oauth_callback", func(c *fiber.Ctx) error {
+//		// confirm the state matches
+//		if c.Query("state") != state {
+//			errorCh <- fmt.Errorf("state did not match")
+//			return c.Status(fiber.StatusBadRequest).SendString("state did not match")
+//		}
+//
+//		// use the authorization code that is pushed to the redirect URL to fetch the access and refresh tokens
+//		tok, err := config.Exchange(context.TODO(), c.Query("code"))
+//		if err != nil {
+//			errorCh <- fmt.Errorf("failed to exchange token: %s", err.Error())
+//			return c.Status(fiber.StatusInternalServerError).SendString("failed to exchange token")
+//		}
+//
+//		tokenCh <- tok
+//		return c.SendString("Authorization complete, you can return to the application.")
+//	})
+//
+//	// print the url to authorize
+//	fmt.Printf("Go to the following link in your browser:\n%v\n", authURL)
+//
+//	var token *oauth2.Token
+//	select {
+//	case err := <-errorCh:
+//		log.Fatalf("Unable to retrieve token from web: %v", err)
+//	case token = <-tokenCh:
+//	}
+//	return token
+//}
 
 // Retrieves a token from a local file.
 func tokenFromFile(file string) (*oauth2.Token, error) {
