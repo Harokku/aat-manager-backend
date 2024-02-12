@@ -12,7 +12,7 @@ func SetupRoutes(app *fiber.App, handler handlers.Handler) {
 	})
 
 	// OAuth auth route
-	app.Get("/oauth_callback", handlers.OauthCallback())
+	app.Get("/oauth_callback", handlers.OauthCallback)
 
 	// Login routes
 	login := app.Group("/login")

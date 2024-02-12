@@ -28,43 +28,41 @@ type AuthData struct {
 	Otp  string `json:"otp,omitempty" form:"otp"`
 }
 
-func OauthCallback() func(ctx *fiber.Ctx) error {
-	return func(ctx *fiber.Ctx) error {
-		// Read state from auth request
-		state := <-gsuite.StateCh
+func OauthCallback(ctx *fiber.Ctx) error {
+	// Read state from auth request
+	state := gsuite.GetState()
 
-		// Check the state parameter
-		responseState := ctx.Query("state")
-		if responseState != state {
-			return ctx.Status(fiber.StatusBadRequest).SendString("Invalid state parameter.")
-		}
-
-		// Get the authorization code from the response
-		code := ctx.Query("code")
-
-		// Recreate config from env
-		b := utils.ReadEnvOrPanic(utils.GOOGLECREDENTIAL)
-		config, err := google.ConfigFromJSON([]byte(b), gmail.GmailSendScope, sheets.SpreadsheetsScope)
-
-		// Exchange the authorization code for an access token
-		token, err := config.Exchange(context.Background(), code)
-		if err != nil {
-			// If error, send back error to caller
-			gsuite.TokenCh <- gsuite.Token{
-				Err: err,
-			}
-			// If error, send error response
-			return ctx.Status(fiber.StatusInternalServerError).SendString("Failed to exchange token: " + err.Error())
-		}
-
-		// Send back token to caller
-		gsuite.TokenCh <- gsuite.Token{
-			Token: token,
-			Err:   nil,
-		}
-
-		return ctx.Status(fiber.StatusOK).SendString("Authentication successful.")
+	// Check the state parameter
+	responseState := ctx.Query("state")
+	if responseState != state {
+		return ctx.Status(fiber.StatusBadRequest).SendString("Invalid state parameter.")
 	}
+
+	// Get the authorization code from the response
+	code := ctx.Query("code")
+
+	// Recreate config from env
+	b := utils.ReadEnvOrPanic(utils.GOOGLECREDENTIAL)
+	config, err := google.ConfigFromJSON([]byte(b), gmail.GmailSendScope, sheets.SpreadsheetsScope)
+
+	// Exchange the authorization code for an access token
+	token, err := config.Exchange(context.Background(), code)
+	if err != nil {
+		// If error, send back error to caller
+		gsuite.TokenCh <- gsuite.Token{
+			Err: err,
+		}
+		// If error, send error response
+		return ctx.Status(fiber.StatusInternalServerError).SendString("Failed to exchange token: " + err.Error())
+	}
+
+	// Send back token to caller
+	gsuite.TokenCh <- gsuite.Token{
+		Token: token,
+		Err:   nil,
+	}
+
+	return ctx.Status(fiber.StatusOK).SendString("Authentication successful.")
 }
 
 func (h *Handler) InitializeService(db *db.InMemoryDb, ms gsuite.MailService, init bool) {

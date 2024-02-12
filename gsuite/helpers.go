@@ -11,6 +11,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -19,8 +20,30 @@ type Token struct {
 	Err   error         // error
 }
 
-var StateCh = make(chan string) // StateCh to xchange oauth2 state variable
-var TokenCh = make(chan Token)  // TokenCh to xchange oauth2 token
+type SharedState struct {
+	state string
+	mux   sync.Mutex
+}
+
+var sharedState = &SharedState{}
+
+var TokenCh = make(chan Token) // TokenCh to xchange oauth2 token
+
+// GetState Getter for state
+func GetState() string {
+	sharedState.mux.Lock()
+	defer sharedState.mux.Unlock()
+
+	return sharedState.state
+}
+
+// SetState Setter for state
+func SetState(state string) {
+	sharedState.mux.Lock()
+	defer sharedState.mux.Unlock()
+
+	sharedState.state = state
+}
 
 // Retrieve a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) *http.Client {
@@ -32,11 +55,19 @@ func getClient(config *oauth2.Config) *http.Client {
 	if err != nil {
 		useWebAuth, _ := strconv.ParseBool(utils.ReadEnvOrPanic(utils.WEBAUTH))
 		if useWebAuth {
-			tok = getTokenFromWeb(config)
+			getTokenFromWeb(config)
+			go func() {
+				// Listen to channel for signed token or error
+				tok := <-TokenCh
+				if tok.Err != nil {
+					log.Printf("Unable to retrieve token from web: %v", tok.Err)
+				}
+				saveToken(tokFile, tok.Token)
+			}()
 		} else {
 			tok = getTokenFromWebToConsole(config)
+			saveToken(tokFile, tok)
 		}
-		saveToken(tokFile, tok)
 	}
 	return config.Client(context.Background(), tok)
 }
@@ -59,12 +90,15 @@ func getTokenFromWebToConsole(config *oauth2.Config) *oauth2.Token {
 	return tok
 }
 
-func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
+// getTokenFromWeb generates an OAuth2.0 URL, sets a random state string, and prints the authorization URL for the user to follow in their browser to authorize the application.
+// The generated state is set as a shared state for later processing.
+// This function does not return any value.
+func getTokenFromWeb(config *oauth2.Config) {
 	// create a random state string
 	state := fmt.Sprintf("st%d", time.Now().UnixNano())
 
-	// send state to channel for handler to check request validity
-	StateCh <- state
+	// Set state for handler to process
+	SetState(state)
 
 	// Generate the OAuth2.0 URL
 	authURL := config.AuthCodeURL(state, oauth2.AccessTypeOffline)
@@ -72,56 +106,7 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	// print the url to authorize
 	fmt.Printf("Go to the following link in your browser:\n%v\n", authURL)
 
-	// Listen to channel for signed token or error
-	token := <-TokenCh
-	if token.Err != nil {
-		log.Fatalf("Unable to retrieve token from web: %v", token.Err)
-	}
-
-	return token.Token
 }
-
-//func getTokenFromWeb(config *oauth2.Config, app *fiber.App) *oauth2.Token {
-//	// create a random state string
-//	state := fmt.Sprintf("st%d", time.Now().UnixNano())
-//
-//	// Generate the OAuth2.0 URL
-//	authURL := config.AuthCodeURL(state, oauth2.AccessTypeOffline)
-//
-//	// make a channel to pass the token or error
-//	tokenCh := make(chan *oauth2.Token)
-//	errorCh := make(chan error)
-//
-//	// add a handler to your fiber app to intercept OAuth2 responses
-//	app.Get("/oauth_callback", func(c *fiber.Ctx) error {
-//		// confirm the state matches
-//		if c.Query("state") != state {
-//			errorCh <- fmt.Errorf("state did not match")
-//			return c.Status(fiber.StatusBadRequest).SendString("state did not match")
-//		}
-//
-//		// use the authorization code that is pushed to the redirect URL to fetch the access and refresh tokens
-//		tok, err := config.Exchange(context.TODO(), c.Query("code"))
-//		if err != nil {
-//			errorCh <- fmt.Errorf("failed to exchange token: %s", err.Error())
-//			return c.Status(fiber.StatusInternalServerError).SendString("failed to exchange token")
-//		}
-//
-//		tokenCh <- tok
-//		return c.SendString("Authorization complete, you can return to the application.")
-//	})
-//
-//	// print the url to authorize
-//	fmt.Printf("Go to the following link in your browser:\n%v\n", authURL)
-//
-//	var token *oauth2.Token
-//	select {
-//	case err := <-errorCh:
-//		log.Fatalf("Unable to retrieve token from web: %v", err)
-//	case token = <-tokenCh:
-//	}
-//	return token
-//}
 
 // Retrieves a token from a local file.
 func tokenFromFile(file string) (*oauth2.Token, error) {
