@@ -13,8 +13,8 @@ func hexDecodeString(s string) []byte {
 }
 
 func TestEncryptToken(t *testing.T) {
-	key := make([]byte, 32)
-	_, _ = rand.Read(key)
+	key := make([]byte, 32) // Create a 32 byte length slice for random secret
+	_, _ = rand.Read(key)   // Randomize key
 
 	// table driven tests
 	tests := []struct {

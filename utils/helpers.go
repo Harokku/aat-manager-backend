@@ -54,6 +54,7 @@ func ReadEnvOrPanic(name string) string {
 
 	res, ok := os.LookupEnv(name)
 	if !ok {
+		log.Printf("Can't find env: %s, looking for .env file", name)
 		err := godotenv.Load()
 		if err != nil {
 			log.Panicf("Error loading .env file:\t%s", err)

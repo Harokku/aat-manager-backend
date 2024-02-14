@@ -75,14 +75,18 @@ func decryptToken(cipherText string, key []byte) (string, error) {
 // The encryptToken function is used to encrypt the token.
 // The GsuiteToken constant specifies the name under which the token is stored in the database.
 func (t Token) SaveToken(token string) error {
-	db := pgConnect()                                       // Acquire db connection
-	aesKey := []byte(utils.ReadEnvOrPanic(utils.AESSECRET)) // Acquire aes secret from env
-	encryptedToke, err := encryptToken(token, aesKey)       // Encrypt token
+	db := pgConnect()                               // Acquire db connection
+	aesKey := utils.ReadEnvOrPanic(utils.AESSECRET) // Acquire aes secret from env
+	aesByteKey, err := hex.DecodeString(aesKey)     // Decode string to byte
+	if err != nil {
+		return err
+	}
+	encryptedToke, err := encryptToken(token, aesByteKey) // Encrypt token
 	if err != nil {
 		return err
 	}
 
-	_, err = db.Exec("INSERT INTO tokens VALUES ($1, $2)", GsuiteToken, encryptedToke)
+	_, err = db.Exec("INSERT INTO tokens(name, value) VALUES ($1, $2)", GsuiteToken, encryptedToke)
 	if err != nil {
 		return err
 	}
@@ -107,10 +111,14 @@ func (t Token) GetToken() (string, error) {
 	}
 
 	// Fetch encryption key from env
-	key := []byte(utils.ReadEnvOrPanic(utils.AESSECRET))
+	aesKey := utils.ReadEnvOrPanic(utils.AESSECRET)
+	aesByteKey, err := hex.DecodeString(aesKey) // Decode string to byte
+	if err != nil {
+		return "", err
+	}
 
 	// Decrypt the token and return it
-	decryptedToken, err := decryptToken(encryptedToken, key)
+	decryptedToken, err := decryptToken(encryptedToken, aesByteKey)
 	if err != nil {
 		log.Printf("Failed to decrypt token: %v", err)
 		return "", err

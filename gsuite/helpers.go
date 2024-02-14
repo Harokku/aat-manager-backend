@@ -147,7 +147,8 @@ func tokenFromDb() (*oauth2.Token, error) {
 	if err != nil {
 		return nil, err
 	}
-	var token *oauth2.Token
+
+	token := &oauth2.Token{}
 	err = json.Unmarshal([]byte(stringToken), token)
 	if err != nil {
 		return nil, err
@@ -167,7 +168,7 @@ func saveTokenToDb(token *oauth2.Token) {
 	// Save token to DB
 	err = db.Token{}.SaveToken(string(stringToken))
 	if err != nil {
-		log.Fatalf("Unable to save token to fb: %v", err)
+		log.Fatalf("Unable to save token to db: %v", err)
 	}
 }
 
