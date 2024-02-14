@@ -1,6 +1,7 @@
 package gsuite
 
 import (
+	"aat-manager/db"
 	"aat-manager/utils"
 	"context"
 	"encoding/json"
@@ -50,19 +51,28 @@ func getClient(config *oauth2.Config) *http.Client {
 	// The file token.json stores the user's access and refresh tokens, and is
 	// created automatically when the authorization flow completes for the first
 	// time.
+
+	var err error
+	var tok *oauth2.Token
 	tokFile := "token.json"
-	tok, err := tokenFromFile(tokFile)
+
+	useWebAuth, _ := strconv.ParseBool(utils.ReadEnvOrPanic(utils.WEBAUTH))
+	if useWebAuth {
+		tok, err = tokenFromDb()
+	} else {
+		tok, err = tokenFromFile(tokFile)
+	}
+
 	if err != nil {
-		useWebAuth, _ := strconv.ParseBool(utils.ReadEnvOrPanic(utils.WEBAUTH))
 		if useWebAuth {
 			getTokenFromWeb(config)
 			go func() {
 				// Listen to channel for signed token or error
-				tok := <-TokenCh
-				if tok.Err != nil {
-					log.Printf("Unable to retrieve token from web: %v", tok.Err)
+				token := <-TokenCh
+				if token.Err != nil {
+					log.Printf("Unable to retrieve token from web: %v", token.Err)
 				}
-				saveToken(tokFile, tok.Token)
+				saveTokenToDb(token.Token)
 			}()
 		} else {
 			tok = getTokenFromWebToConsole(config)
@@ -129,6 +139,36 @@ func saveToken(path string, token *oauth2.Token) {
 	}
 	defer f.Close()
 	json.NewEncoder(f).Encode(token)
+}
+
+// Retrieve token from db
+func tokenFromDb() (*oauth2.Token, error) {
+	stringToken, err := db.Token{}.GetToken()
+	if err != nil {
+		return nil, err
+	}
+	var token *oauth2.Token
+	err = json.Unmarshal([]byte(stringToken), token)
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}
+
+// Save token to db
+func saveTokenToDb(token *oauth2.Token) {
+	// Serialize token to string
+	stringToken, err := json.Marshal(token)
+	if err != nil {
+		log.Fatalf("Unable to marshal token: %v", err)
+	}
+
+	// Save token to DB
+	err = db.Token{}.SaveToken(string(stringToken))
+	if err != nil {
+		log.Fatalf("Unable to save token to fb: %v", err)
+	}
 }
 
 // -------------------------

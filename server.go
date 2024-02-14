@@ -20,6 +20,8 @@ func main() {
 	// Initialize in memory db for OTP storage
 	memoryDb := db.NewDB()
 
+	// Create postgres db conn pool and ping DB
+
 	// Read google service enable flag
 	googleServiceEnable, err := strconv.ParseBool(utils.ReadEnvOrPanic(utils.WITHGOOGLESERVICE))
 	if err != nil {
