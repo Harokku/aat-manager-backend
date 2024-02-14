@@ -1,0 +1,77 @@
+html{
+    font-size: 32px;
+}
+
+body {
+    font-family: Helvetica, sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-image: radial-gradient(circle, whitesmoke, darkgray);
+    font-size: 16px;
+}
+
+h1{
+    text-transform: uppercase;
+    font-size: 4rem;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 80vw;
+}
+
+label {
+    display: block;
+    margin-bottom: 0;
+    align-self: flex-start;
+    margin-left: 15%;
+    width: 80%;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+input {
+    box-sizing: border-box;
+    text-align: center;
+    border-radius: 15px;
+    border: none;
+    outline: none;
+    background-color: dimgrey;
+    color: aliceblue;
+    width: 80%;
+    padding: 0.5rem;
+    font-size: 1rem;
+    text-transform: uppercase;
+}
+
+input::placeholder {
+    color: linen;
+    font-size: 0.8rem;
+}
+input:focus::placeholder{
+    color: transparent;
+}
+
+button {
+    border-radius: 15px;
+    border: none;
+    outline: none;
+    background-color: darkcyan;
+    color: aliceblue;
+    margin-top: 30px;
+    width: 80%;
+    padding: 0.5rem;
+    font-size: 1.5rem;
+    text-transform: uppercase;
+}
+
+button:hover {
+    background-color: cadetblue;
+}
